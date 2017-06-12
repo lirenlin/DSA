@@ -19,6 +19,3 @@ num2 = [0, 0, 2, 3]
 
 merge (num1, 5, num2, 4)
 print num1
-      
-    
-    
