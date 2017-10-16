@@ -30,7 +30,7 @@ bool wordBreak_back (string str, wordDict &dict)
 	//cout << word << ": " << dp[i] << endl;
       }
 
-  cout << __FUNCTION__ << count << endl;
+  cout << __FUNCTION__ << ": " << count << endl;
   for (int i = 0; i < size; i++)
     cout << dp[i] << ' ';
   cout << endl;
@@ -71,7 +71,7 @@ bool wordBreak_forward (string str, wordDict &dict)
 	//cout << word << ": " << dp[j] << endl;
       }
 
-  cout << __FUNCTION__ << count << endl;
+  cout << __FUNCTION__ << ": " << count << endl;
   for (int i = 0; i < size; i++)
     cout << dp[i] << ' ';
   cout << endl;
@@ -84,7 +84,7 @@ bool wordBreak_forward (string str, wordDict &dict)
 int main ()
 {
   string str = "leetmecode";
-  wordDict dict = {"leet", "code", "me"};
+  wordDict dict = {"leet", "code", "me", "mecode"};
   bool found1 = wordBreak_back (str, dict);
   bool found2 = wordBreak_forward (str, dict);
 
