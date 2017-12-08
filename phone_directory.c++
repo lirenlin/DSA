@@ -1,10 +1,40 @@
 #include <iostream>
 #include <list>
 #include <string>
+#include <boost/graph/graphviz.hpp>
+#include <boost/graph/properties.hpp>
 
 using namespace std;
 typedef list<string> WordList;
 #define ALPHABET_SIZE 26
+
+struct vProperty
+{
+  string name;
+  string color;
+};
+
+using namespace boost;
+typedef adjacency_list < listS,       // Store out-edges of each vertex in a std::list
+	vecS,                       // Store vertex set in a std::vector
+	directedS,                  // The graph is directed
+	vProperty     // Add a vertex property
+	>graph_type;
+
+graph_type::vertex_descriptor createVertex (char c, bool isEndOfWord, graph_type &treeGraph)
+{
+  vProperty vp;
+  vp.name = c;
+
+  if (isEndOfWord)
+    vp.color = "red";
+  else
+    vp.color = "white";
+
+  graph_type::vertex_descriptor vertex = add_vertex(vp, treeGraph);
+
+  return vertex;
+}
 
 class TrieNode
 {
@@ -16,6 +46,8 @@ public:
   TrieNode *searchNode (string word, int &depth);
   WordList getWord (string word);
   bool endOfWord () { return isEndOfWord;}
+
+  void writeGraph (graph_type::vertex_descriptor parentV, graph_type &treeGraph);
 
 private:
   TrieNode *children[ALPHABET_SIZE];
@@ -93,6 +125,20 @@ WordList TrieNode::getWord (string word)
   return wordList;
 };
 
+void TrieNode::writeGraph (graph_type::vertex_descriptor parentV, graph_type &treeGraph)
+{
+  for (int i = 0; i < ALPHABET_SIZE; ++i)
+    {
+      TrieNode *child = children [i];
+      char c= i + 97;
+      if (child == nullptr)
+	continue;
+      graph_type::vertex_descriptor newV = createVertex (c, child->endOfWord (), treeGraph);
+      add_edge (parentV, newV, treeGraph);
+      child->writeGraph (newV, treeGraph);
+    }
+}
+
 class Book
 {
 public:
@@ -100,7 +146,8 @@ public:
   Book () {}
 
   void addWord (string word);
-  WordList getSuggestion (string prefix);
+  void getSuggestion (string prefix);
+  void dumpGraph (graph_type &treeGraph);
 
 private:
   TrieNode root;
@@ -117,34 +164,58 @@ void Book::addWord (string word)
   root.insertNode (word);
 }
 
-WordList Book::getSuggestion (string prefix)
+void Book::getSuggestion (string prefix)
 {
   int depth = 0;
   TrieNode *node = root.searchNode (prefix, depth);
+  WordList wordList = node->getWord ("");
   if (depth == prefix.length ())
     {
       if (node->endOfWord ())
 	cout << prefix << endl;
-      WordList wordList = node->getWord ("");
       for (auto word : wordList)
 	cout << "\t" << prefix + word << endl;
     }
-  else
+  else if (depth == 0)
     cout << "no such word in the book: " << prefix << endl;
+  else
+    {
+      cout << "no such word in the book: " << prefix << endl;
+      cout << "the cloest words are:" << endl;
+      for (auto word : wordList)
+	cout << "\t" << prefix.substr (0, depth)  + word << endl;
+    }
+}
+
+void Book::dumpGraph (graph_type &treeGraph)
+{
+  graph_type::vertex_descriptor rootV = createVertex ('0', false, treeGraph);
+  root.writeGraph (rootV, treeGraph);
 }
 
 int main ()
 {
   WordList wordList = {"lirenlin", "desk", "arm", "Cambridge", "day",
-      "libeibei"};
+      "libeibei", "dead", "army"};
   Book book = Book (wordList);
+
+  graph_type treeGraph;
+  book.dumpGraph (treeGraph);
+  std::ofstream dotfile ("book.dot");
+
+  dynamic_properties dp;
+  dp.property ("node_id", get (vertex_index, treeGraph));
+  dp.property ("label", get (&vProperty::name, treeGraph));
+  dp.property ("color", get (&vProperty::color, treeGraph));
+
+
+  write_graphviz_dp (dotfile, treeGraph, dp);
 
   while (true)
     {
       string word;
       cout << "give a word: ";
-      //cin >> word;
-      word = "li";
+      cin >> word;
 
       if (word == "end")
 	break;
