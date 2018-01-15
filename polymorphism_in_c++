@@ -1,0 +1,10 @@
+compile-time polymorphism/static polymorphism
+function overiding
+function overloading
+
+template specialization/instantiation
+different template parameters may involve instantiating templates, which leads
+to different functions be called.
+
+run-time polymorphism
+virtual method and public inheritance, "is a" relationship
