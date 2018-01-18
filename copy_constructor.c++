@@ -27,9 +27,9 @@ int main ()
   // dtor derived, dtor baseB, dtor baseA
   baseA D1;
   cout << "##################" << endl;
-  baseA res = foo (D1);
+  baseA res = foo (D1); // for res, is copy elision? return value optimisation
   cout << "##################" << endl;
   baseA D2 (res);
   cout << "##################" << endl;
-
+  baseA D3 (foo (D1));
 }
