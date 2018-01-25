@@ -7,11 +7,12 @@ class Node
 public:
   explicit Node (T data): data (data), next (nullptr) {};
 
-  void setNext (const Node node) {next = &node;};
+  void setNext (const Node *node) {next = node;};
   Node const* getNext () const {return next;};
-  bool endP () const {next == nullptr;};
+  bool endP () const {return next == nullptr;};
 
-  friend ostream &operator << (ostream &os, const Node &dt);
+  template <typename N>
+  friend ostream &operator << (ostream &os, const Node<N> &dt);
 
 private:
   T data;
@@ -30,9 +31,9 @@ int circularList (const Node<T> &node)
 {
   int pos = 0;
   Node<T> const *fastPtr = node.getNext ()->getNext () ;
-  Node<T> const *slowPtr = &node;
+  Node<T> const *slowPtr = node.getNext ();
 
-  while (fastPtr != slowPtr && fastPtr->endP ())
+  while (fastPtr != slowPtr && !fastPtr->endP ())
     {
       fastPtr = fastPtr->getNext ()->getNext ();
       slowPtr = slowPtr->getNext ();
@@ -65,12 +66,13 @@ int main ()
   Node<char> node6 ('f');
   Node<char> node7 ('g');
 
-  node1.setNext (node2);
-  node2.setNext (node3);
-  node3.setNext (node4);
-  node4.setNext (node5);
-  node5.setNext (node6);
-  node7.setNext (node3);
+  node1.setNext (&node2);
+  node2.setNext (&node3);
+  node3.setNext (&node4);
+  node4.setNext (&node5);
+  node5.setNext (&node6);
+  node6.setNext (&node7);
+  node7.setNext (&node3);
 
   cout << circularList<char> (node1) << endl;
 }
