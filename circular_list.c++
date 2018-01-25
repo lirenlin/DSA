@@ -1,5 +1,9 @@
 #include <iostream>
 using namespace std;
+//https://stackoverflow.com/questions/4660123/overloading-friend-operator-for-template-class
+
+template <typename T> class Node;
+template <typename T> ostream &operator << (ostream &os, const Node<T> &dt);
 
 template <typename T>
 class Node
@@ -11,8 +15,7 @@ public:
   Node const* getNext () const {return next;};
   bool endP () const {return next == nullptr;};
 
-  template <typename N>
-  friend ostream &operator << (ostream &os, const Node<N> &dt);
+  friend ostream &operator << <T> (ostream &os, const Node &dt);
 
 private:
   T data;
