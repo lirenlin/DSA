@@ -44,12 +44,54 @@ void solution_dp (string str)
 	print_substr (str, idx, j);
 }
 
+void solution_other (string str)
+{
+  int start, end = 0;
+  unsigned max_start = 0;
+  unsigned max_end = 0;
+  for (int i = 0; i < str.size (); ++i)
+    {
+      unsigned odd_max_len;
+      unsigned even_max_len;
+	{
+	  int L = i, R = i;
+	  while (L >= 0 && R < str.size () && str[L] == str[R])
+	    {
+	      --L;
+	      ++R;
+	    }
+	  odd_max_len = R - L - 1;
+	}
+
+	{
+	  int L = i, R = i + 1;
+	  while (L >= 0 && R < str.size () && str[L] == str[R])
+	    {
+	      --L;
+	      ++R;
+	    }
+	  even_max_len = R - L - 1;
+	}
+      unsigned max_len = even_max_len > odd_max_len ? even_max_len:odd_max_len;
+
+      if (max_len > max_end - max_start + 1)
+	{
+	  max_start = i - (max_len - 1) / 2;
+	  max_end = i + max_len / 2;
+	}
+    }
+
+  print_substr (str, max_start, max_end);
+}
+
 int main ()
 {
   string str;
   cout << "Give a string: ";
   cin >> str;
   solution_dp (str);
+  cout << "###" << endl;
+  solution_other (str);
 
   return 0;
 }
