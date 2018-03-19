@@ -1,45 +1,28 @@
 import multiprocessing as mp
-import os
 
 def process (line):
-  print line
+    print line
 
-def process_wrapper (chunkStart, chunkSize):
-  print mp.current_process().name
-  with open("input.txt") as f:
-    f.seek(chunkStart)
-    lines = f.read(chunkSize).splitlines()
-    for line in lines:
-      process(line)
+def process_wrapper(lineByte):
+    with open("input.txt") as f:
+        f.seek(lineByte)
+        line = f.readline()
+        process(line)
 
-#This is size based, not line based
-def chunkify (fname, size=10):
-  fileEnd = os.path.getsize(fname)
-  with open(fname,'r') as f:
-    chunkEnd = f.tell()
+#init objects
+pool = mp.Pool()
+jobs = []
 
-    while True:
-      chunkStart = chunkEnd
-      f.seek (size,1)
-      f.readline ()
-      chunkEnd = f.tell ()
-      yield chunkStart, chunkEnd - chunkStart
-      if chunkEnd > fileEnd:
-        break
+#create jobs
+with open("input.txt") as f:
+    nextLineByte = f.tell()
+    for line in f:
+        jobs.append( pool.apply_async(process_wrapper,(nextLineByte,)) )
+        nextLineByte = f.tell()
 
-def main():
-  pool = mp.Pool()
-  jobs = []
+#wait for all jobs to finish
+for job in jobs:
+    job.get()
 
-  #create jobs
-  for chunkStart,chunkSize in chunkify ("input.txt"):
-    jobs.append (pool.apply_async (process_wrapper, (chunkStart, chunkSize)))
-
-  # wait for all jobs to finish
-  for job in jobs:
-    job.get ()
-
-  pool.close ()
-
-if __name__ == '__main__':
-  main()
+#clean up
+pool.close()
