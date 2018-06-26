@@ -80,6 +80,7 @@ int Solution::LISDP (vector<int> &nums)
   else if (size == 1)
     return 1;
 
+  // the longest instreasing sequence ending at i;
   int dp[size];
   int max = 1;
   dp[0] = 1;
