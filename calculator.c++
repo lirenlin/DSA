@@ -1,3 +1,10 @@
+//@todo
+//1, add operator global object, so that it could be shared.
+//2, clean new keyword, there are memory leaks
+//3, orgnize the class better, don't put specific information inside token
+//
+//
+//map, vector, operator overload, string
 #include <iostream>
 #include <string>
 #include <map>
