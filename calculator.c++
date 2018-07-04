@@ -1,18 +1,18 @@
-//@todo
-//1, add operator global object, so that it could be shared.
-//2, clean new keyword, there are memory leaks
-//3, orgnize the class better, don't put specific information inside token
-//
-//
 //map, vector, operator overload, string
+//factory, singleton
+
+
 #include <iostream>
 #include <string>
 #include <map>
 #include <cassert>
 #include <vector>
+#include <algorithm>
 
 enum class Associativity {NONE, LTR, RTL};
 using OpMap = std::map<std::string, std::pair<int, Associativity>>;
+
+enum class TokenKind {NUM, OP, LP, RP, INVALID};
 
 #define OP_ENTRY(STR, PRECEDENCE, ASSOCIATIVITY) \
 {STR, {PRECEDENCE, Associativity::ASSOCIATIVITY}}
@@ -29,28 +29,31 @@ OpMap opMap = {
     OP_ENTRY ("^", 8, LTR),
     OP_ENTRY ("|", 8, LTR)};
 
+class Context;
 class Token
 {
-public:
-  std::string str;
-  unsigned precedence;
-  Associativity associativity;
+  friend class Context;
+protected:
+  Token (std::string str, TokenKind kind): str (str), tokenKind (kind) {}
+  Token (std::string str): str (str), tokenKind (TokenKind::INVALID) {}
+  Token () {tokenKind = TokenKind::INVALID;}
 
 public:
-  Token (std::string str): str (str) {}
-  Token () {};
-  virtual bool isNum () {return false;}
-  virtual bool isOperator () {return false;}
-  virtual bool isFunc () {return false;}
-  virtual bool isLeftBracket () {return false;}
-  virtual bool isRightBracket () {return false;}
-  virtual int value () { return 0;}
+  std::string str;
+  TokenKind tokenKind;
+
+public:
+  virtual bool isNum () {return tokenKind == TokenKind::NUM;}
+  virtual bool isOperator () {return tokenKind == TokenKind::OP;}
+  virtual bool isLeftBracket () {return tokenKind == TokenKind::LP;}
+  virtual bool isRightBracket () {return tokenKind == TokenKind::RP;}
 };
 
 class Operator: public Token
 {
-public:
-  Operator (std::string str): Token (str) {
+  friend class Context;
+protected:
+  Operator (std::string str): Token (str, TokenKind::OP) {
       OpMap::iterator it;
       it = opMap.find (str);
       if (it != opMap.end ())
@@ -62,7 +65,10 @@ public:
 	assert ("not a valid operator");
   }
 
-  bool isOperator () {return true;}
+public:
+  unsigned precedence;
+  Associativity associativity;
+
   bool greaterPrecedence(Operator &op)
     {
       assert (isOperator () && op.isOperator() && "A,B must all be operator");
@@ -86,11 +92,13 @@ public:
 
 class Number: public Token
 {
+  friend class Context;
 private:
   int val;
-public:
-  Number (int value):  Token (std::to_string (value)), val (value) {}
-  Number (std::string str): Token (str) {
+
+protected:
+  Number (int value): Token (std::to_string (value), TokenKind::NUM), val (value) {}
+  Number (std::string str): Token (str, TokenKind::NUM) {
       try {
 	  val = std::stoi (str);
       }
@@ -102,18 +110,86 @@ public:
       }
   }
 
-  bool isNum () {return true;}
+public:
   int value () {return val;}
 };
 
 class Bracket: public Token
 {
+  friend class Context;
+protected:
+  Bracket (std::string str): Token (str) {
+     if (str == "(")
+       tokenKind = TokenKind::LP;
+     else if (str == ")")
+       tokenKind = TokenKind::RP;
+  }
+};
+
+class Context
+{
 private:
-  bool isLeft;
+  std::vector<Token *> tokens;
+  int size;
+
 public:
-  Bracket (std::string str): Token (str) { isLeft = (str == "("); }
-  bool isLeftBracket () {return isLeft;}
-  bool isRightBracket () {return !isLeft;}
+  Token * getToken (std::string str, TokenKind kind) {
+      std::vector<Token *>::iterator it = std::find_if (tokens.begin (),
+							tokens.end (),
+							[&](Token *token) { return token->tokenKind == kind && token->str == str;});
+      if (it == tokens.end ())
+	{
+	  ++size;
+	  Token *token;
+	  if (kind == TokenKind::NUM)
+	    token = new Number (str);
+	  else if (kind == TokenKind::OP)
+	    token = new Operator (str);
+	  else if (kind == TokenKind::LP)
+	    token = new Bracket (str);
+	  else if (kind == TokenKind::RP)
+	    token = new Bracket (str);
+	  else
+	    token = new Token (str, kind);
+
+	  tokens.push_back (token);
+	  return token;
+	}
+      else
+	{
+	  std::cout << str << " shared" << std::endl;
+	  return *it;
+	}
+  }
+
+  Number *getNumToken (int value)
+    {
+      std::string str = std::to_string (value);
+      Token *token = getToken (str, TokenKind::NUM);
+      return dynamic_cast<Number *>(token);
+    }
+
+  Number *getNumToken (std::string str)
+    {
+      Token *token = getToken (str, TokenKind::NUM);
+      return dynamic_cast<Number *>(token);
+    }
+
+  Operator *getOpToken (std::string str)
+    {
+      Token *token = getToken (str, TokenKind::OP);
+      return dynamic_cast<Operator *>(token);
+    }
+
+  Context (): size (0) {}
+  ~Context () {
+      for (auto *token : tokens)
+	{
+	  --size;
+	  delete token;
+	}
+      assert (size == 0);
+  }
 };
 
 bool isOperator (std::string str, int &offset)
@@ -149,6 +225,7 @@ void dumpRPN (std::vector<Token *> &vector)
 
 int parseString (std::string expression)
 {
+  Context ctx;
   std::vector<Token *> output;
   std::vector<Token *> stack;
   unsigned idx = 0;
@@ -161,10 +238,9 @@ int parseString (std::string expression)
       while (expression[idx] == ' ')
 	++idx;
 
-      Token *token;
       if (expression[idx] == '(')
 	{
-	  token = new Bracket (expression.substr (idx, 1));
+	  Token *token = ctx.getToken (expression.substr (idx, 1), TokenKind::LP);
 	  ++idx;
 	  stack.push_back(token);
 	  continue;
@@ -195,7 +271,7 @@ int parseString (std::string expression)
 	      ++idx;
 	    }
 
-	  token = new Number (expression.substr (start, idx-start));
+	  Number *token = ctx.getNumToken (expression.substr (start, idx-start));
 	  output.push_back (token);
 	  continue;
 	}
@@ -203,7 +279,7 @@ int parseString (std::string expression)
       int offset = 0;
       if (isOperator (expression.substr (idx), offset))
 	{
-	  Operator *op = new Operator (expression.substr (idx, offset));
+	  Operator *op = ctx.getOpToken (expression.substr (idx, offset));
 	  idx += offset;
 	  if (stack.empty ())
 	    {
@@ -224,13 +300,12 @@ int parseString (std::string expression)
 	    {
 	      while (!stack.empty ())
 		{
-		  Token *top = stack.back ();
-		  if (((top->precedence < op->precedence)
-		       || ((top->precedence == op->precedence)
-			   && top->associativity == Associativity::LTR))
-		      && !(top->isLeftBracket ()))
+		  Operator *top = dynamic_cast<Operator *>(stack.back ());
+		  if (top && ((top->precedence < op->precedence)
+			      || ((top->precedence == op->precedence)
+				  && top->associativity == Associativity::LTR)))
 		    {
-		      output.push_back (stack.back ());
+		      output.push_back (top);
 		      stack.pop_back ();
 		    }
 		  else
@@ -248,6 +323,8 @@ int parseString (std::string expression)
       output.push_back (stack.back ());
       stack.pop_back ();
     }
+
+  dumpRPN (output);
 
   //using stack to evaluate RPN
     {
@@ -270,18 +347,22 @@ int parseString (std::string expression)
 	      Token *op2 = stack.back ();
 	      stack.pop_back ();
 	      assert (op1->isNum () && op2->isNum ());
-	      int value = (*op) (op2->value (), op1->value ());
-	      Number *num = new Number (value);
+
+	      int num2 = dynamic_cast<Number *>(op2)->value ();
+	      int num1 = dynamic_cast<Number *>(op1)->value ();
+	      int value = (*op) (num2, num1);
+	      Token *num = ctx.getNumToken (value);
 	      stack.push_back (num);
 	    }
 	}
-      return (stack.back ())->value ();
+      Number *result = dynamic_cast <Number *>(stack.back ());
+      return (result->value ());
     }
 }
 
 int main ()
 {
-  //std::string expression = "1++";
+  //std::string expression = "1+3*(4-2)";
   std::string expression;
   std::cout << "enter an expression: ";
   std::cin >> expression;
