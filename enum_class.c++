@@ -1,12 +1,18 @@
-#include <cstdint>
-//https://www.cprogramming.com/c++11/c++11-nullptr-strongly-typed-enum-class.html
-//
-// 1, strongly typed enums. old-style c++ enums are essentially integers;
-// they could be compared with integers or with other enums of different type.
-// 2, better scoping. old-style enum values were unscoped. You couldn't have two
-// enumerations that shared the same name.
-// 3, well-defined enum size. You can set the size of enum, signed or unsigned.
+#include <iostream>
+using namespace std;
 
-enum class Colors: std::int8_t { RED = 1, GREEN = 2, BLUE = 3};
-enum class Feelings: char { EXCITED, MOODY, BLUE};
-void func (Colors color);
+enum class Type: unsigned {
+  v1i8 = 0,
+  v2i8 = 1,
+  v3i8 = 2,
+  v4i8 = 3,
+  FIRST_INT_VEC = v1i8
+};
+
+int main ()
+{
+  //unsigned n =Type::FIRST_INT_VEC; //error: no scoped enum to in conversion
+  cout << static_cast<int>(Type::FIRST_INT_VEC) << endl;;
+  cout << static_cast<int>(Type::v1i8) << endl;
+}
+
