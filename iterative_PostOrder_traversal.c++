@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <cassert>
+#include <fstream>
 
 //forward declration
 template <typename T>
@@ -48,20 +49,20 @@ public:
       return os;
     }
 
-  void dumpGraph (std::string title) const
+  void dumpGraph (std::ostream &os, std::string title) const
     {
-      std::cout << "digraph \"" << title << "\" {" << '\n';
-      dumpDot ();
-      std::cout << "}" << '\n';
+      os << "digraph \"" << title << "\" {" << '\n';
+      dumpDot (os);
+      os << "}" << '\n';
     }
 
-  void dumpDot () const
+  void dumpDot (std::ostream &os) const
     {
-      std::cout << "Node" << this << " [label=\"" << order << ": " << val << "\"];\n";
+      os << "Node" << this << " [label=\"" << order << ": " << val << "\"];\n";
       for (auto Itr : childrenList)
 	{
-	  std::cout << "Node" << this << " -> Node" << Itr << ";\n";
-	  Itr->dumpDot ();
+	  os << "Node" << this << " -> Node" << Itr << ";\n";
+	  Itr->dumpDot (os);
 	}
     }
 
@@ -208,7 +209,7 @@ CL<T> inOrder (Node<T> *root)
 
 int main ()
 {
-  NodeFactory<char> ctx = {};
+  NodeFactory<char> ctx;
   Node<char> *root = ctx.makeNode('a');
   Node<char> *node2 = ctx.makeNode('b');
   Node<char> *node3 = ctx.makeNode('c');
@@ -230,23 +231,32 @@ int main ()
   node5->addChild (node8);
   node4->addChild (node10);
 
-  root->dumpGraph ("org");
+  std::ofstream of;
+  of.open("org.dot");
+  root->dumpGraph (of, "org");
+  of.close ();
 
+  of.open("post.dot");
   CL<char> result = postOrder (root);
   unsigned idx = 0;
   for (int i = 0; i < result.size (); ++i)
     result[i]->order = i;
-  root->dumpGraph ("PostOrder");
+  root->dumpGraph (of, "PostOrder");
+  of.close ();
 
+  of.open("pre.dot");
   result = preOrder (root);
   for (int i = 0; i < result.size (); ++i)
     result[i]->order = i;
-  root->dumpGraph ("PreOrder");
+  root->dumpGraph (of, "PreOrder");
+  of.close ();
 
+  of.open("in.dot");
   result = inOrder (root);
   for (int i = 0; i < result.size (); ++i)
     result[i]->order = i;
-  root->dumpGraph ("Inorder");
+  root->dumpGraph (of, "Inorder");
+  of.close ();
 
   return 0;
 }
