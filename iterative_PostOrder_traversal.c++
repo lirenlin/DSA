@@ -11,7 +11,7 @@ template <typename T>
 std::ostream & operator << (std::ostream &os, const Node <T>& dt);
 
 template <typename T>
-using CL = std::vector<const Node<T> *>;
+using CL = std::vector<Node<T> *>;
 
 template <typename T>
 class Node
@@ -27,7 +27,7 @@ public:
   CL<T> &getChildren () const {return childrenList;}
   T getVal () const {return val;};
   unsigned getChildrenNum() const {return childrenList.size();}
-  const Node<T> *getNthChild(unsigned n) const
+  Node<T> *getNthChild(unsigned n)
     {
       assert (n < childrenList.size());
       return childrenList[n];
@@ -48,16 +48,16 @@ public:
       return os;
     }
 
-  void dumpGraph () const
+  void dumpGraph (std::string title) const
     {
-      std::cout << "digraph \"graph\" {" << '\n';
+      std::cout << "digraph \"" << title << "\" {" << '\n';
       dumpDot ();
       std::cout << "}" << '\n';
     }
 
   void dumpDot () const
     {
-      std::cout << "Node" << this << " [label=\"" << val << "\"];\n";
+      std::cout << "Node" << this << " [label=\"" << order << ": " << val << "\"];\n";
       for (auto Itr : childrenList)
 	{
 	  std::cout << "Node" << this << " -> Node" << Itr << ";\n";
@@ -111,12 +111,12 @@ template <typename T>
 CL<T> postOrder (Node<T> *root)
 {
   CL<T> result;
-  using meta = std::pair<const Node<T> *, unsigned>;
+  using meta = std::pair<Node<T> *, unsigned>;
   std::vector<meta> stack;
   stack.push_back (std::make_pair (root, 0));
   while (!stack.empty())
     {
-      const Node<T> *node = (stack.back ()).first;
+      Node<T> *node = (stack.back ()).first;
       unsigned idx = (stack.back ()).second++;
 
       // this is a leaf node
@@ -136,7 +136,7 @@ CL<T> postOrder (Node<T> *root)
 	  // otherwise, visit next child
 	  else
 	    {
-	      const Node<T> *child = node->getNthChild (idx);
+	      Node<T> *child = node->getNthChild (idx);
 	      stack.push_back (std::make_pair (child, 0));
 	    }
 	}
@@ -148,12 +148,12 @@ template <typename T>
 CL<T> preOrder (Node<T> *root)
 {
   CL<T> result;
-  using meta = std::pair<const Node<T> *, unsigned>;
+  using meta = std::pair<Node<T> *, unsigned>;
   std::vector<meta> stack;
   stack.push_back (std::make_pair (root, 0));
   while (!stack.empty())
     {
-      const Node<T> *node = (stack.back ()).first;
+      Node<T> *node = (stack.back ()).first;
       unsigned idx = (stack.back ()).second++;
 
       if (idx == 0)
@@ -164,7 +164,7 @@ CL<T> preOrder (Node<T> *root)
 	stack.pop_back ();
       else
 	{
-	  const Node<T> *child = node->getNthChild (idx);
+	  Node<T> *child = node->getNthChild (idx);
 	  stack.push_back (std::make_pair (child, 0));
 	}
     }
@@ -175,12 +175,12 @@ template <typename T>
 CL<T> inOrder (Node<T> *root)
 {
   CL<T> result;
-  using meta = std::pair<const Node<T> *, unsigned>;
+  using meta = std::pair<Node<T> *, unsigned>;
   std::vector<meta> stack;
   stack.push_back (std::make_pair (root, 0));
   while (!stack.empty())
     {
-      const Node<T> *node = (stack.back ()).first;
+      Node<T> *node = (stack.back ()).first;
       unsigned idx = (stack.back ()).second++;
 
       // this is a leaf node
@@ -199,7 +199,7 @@ CL<T> inOrder (Node<T> *root)
 	stack.pop_back ();
       else
 	{
-	  const Node<T> *child = node->getNthChild (idx);
+	  Node<T> *child = node->getNthChild (idx);
 	  stack.push_back (std::make_pair (child, 0));
 	}
     }
@@ -230,29 +230,23 @@ int main ()
   node5->addChild (node8);
   node4->addChild (node10);
 
-  root->dumpGraph ();
+  root->dumpGraph ("org");
 
   CL<char> result = postOrder (root);
   unsigned idx = 0;
-  std::cout << "edge [color=\"red\"];\n";
-  for (int i = 0; i < result.size () - 1; ++i)
-    {
-      std::cout << "Node" << result[i] << " -> Node" << result[i+1] << ";\n";
-    }
+  for (int i = 0; i < result.size (); ++i)
+    result[i]->order = i;
+  root->dumpGraph ("PostOrder");
 
-  std::cout << "PostOrder" << '\n';
-  for (auto *Itr : result)
-    Itr->dump();
-
-  std::cout << "PreOrder" << '\n';
   result = preOrder (root);
-  for (auto *Itr : result)
-    Itr->dump();
+  for (int i = 0; i < result.size (); ++i)
+    result[i]->order = i;
+  root->dumpGraph ("PreOrder");
 
-  std::cout << "InOrder" << '\n';
   result = inOrder (root);
-  for (auto *Itr : result)
-    Itr->dump();
+  for (int i = 0; i < result.size (); ++i)
+    result[i]->order = i;
+  root->dumpGraph ("Inorder");
 
   return 0;
 }
