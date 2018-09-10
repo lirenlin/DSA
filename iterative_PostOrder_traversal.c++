@@ -144,6 +144,68 @@ CL<T> postOrder (Node<T> *root)
   return result;
 }
 
+template <typename T>
+CL<T> preOrder (Node<T> *root)
+{
+  CL<T> result;
+  using meta = std::pair<const Node<T> *, unsigned>;
+  std::vector<meta> stack;
+  stack.push_back (std::make_pair (root, 0));
+  while (!stack.empty())
+    {
+      const Node<T> *node = (stack.back ()).first;
+      unsigned idx = (stack.back ()).second++;
+
+      if (idx == 0)
+	result.push_back (node);
+
+      // this is a leaf node, or we finished visiting all the child nodes
+      if (0 == node->getChildrenNum () || idx == node->getChildrenNum ())
+	stack.pop_back ();
+      else
+	{
+	  const Node<T> *child = node->getNthChild (idx);
+	  stack.push_back (std::make_pair (child, 0));
+	}
+    }
+  return result;
+}
+
+template <typename T>
+CL<T> inOrder (Node<T> *root)
+{
+  CL<T> result;
+  using meta = std::pair<const Node<T> *, unsigned>;
+  std::vector<meta> stack;
+  stack.push_back (std::make_pair (root, 0));
+  while (!stack.empty())
+    {
+      const Node<T> *node = (stack.back ()).first;
+      unsigned idx = (stack.back ()).second++;
+
+      // this is a leaf node
+      if (0 == node->getChildrenNum ())
+	{
+	  result.push_back (node);
+	  stack.pop_back ();
+	  continue;
+	}
+
+      if (idx == 1)
+	result.push_back (node);
+
+      // finished visiting all the child nodes
+      if (idx == node->getChildrenNum ())
+	stack.pop_back ();
+      else
+	{
+	  const Node<T> *child = node->getNthChild (idx);
+	  stack.push_back (std::make_pair (child, 0));
+	}
+    }
+  return result;
+}
+
 int main ()
 {
   NodeFactory<char> ctx = {};
@@ -156,6 +218,7 @@ int main ()
   Node<char> *node7 = ctx.makeNode('g');
   Node<char> *node8 = ctx.makeNode('h');
   Node<char> *node9 = ctx.makeNode('i');
+  Node<char> *node10 = ctx.makeNode('j');
 
   root->addChild (node2);
   root->addChild (node3);
@@ -165,6 +228,7 @@ int main ()
   node5->addChild (node6);
   node5->addChild (node7);
   node5->addChild (node8);
+  node4->addChild (node10);
 
   root->dumpGraph ();
 
@@ -175,6 +239,20 @@ int main ()
     {
       std::cout << "Node" << result[i] << " -> Node" << result[i+1] << ";\n";
     }
+
+  std::cout << "PostOrder" << '\n';
+  for (auto *Itr : result)
+    Itr->dump();
+
+  std::cout << "PreOrder" << '\n';
+  result = preOrder (root);
+  for (auto *Itr : result)
+    Itr->dump();
+
+  std::cout << "InOrder" << '\n';
+  result = inOrder (root);
+  for (auto *Itr : result)
+    Itr->dump();
 
   return 0;
 }
