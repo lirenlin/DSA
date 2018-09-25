@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
 
 #define MAX 10
 typedef struct
@@ -99,18 +101,57 @@ void swapDown (NodeHeap *heap, unsigned parent_idx)
 
 void dumpHeap (NodeHeap *heap)
 {
+  static unsigned idx = 0;
+  char fileName[20];
+  sprintf (fileName, "priority_queue_%d.dot", idx);
+  idx += 1;
+
+  FILE *f = fopen (fileName, "w");
+  if (f == NULL)
+    {
+      printf ("Error while open file!\n");
+      exit (1);
+    }
+  else
+    printf ("Writing %s!\n", fileName);
+
+  fprintf (f, "digraph \"queue\" {\n");
+
+  //dump al the node
   for (unsigned i = 0; i < heap->size; ++i)
-    printf ("%d: %d,", heap->root[i]->key, heap->root[i]->data);
-  printf ("\n");
+    fprintf (f, "Node%p [label=\"priority: %d, val: %d\"];\n", heap->root[i], heap->root[i]->key,
+	    heap->root[i]->data);
+
+  //dump the link
+  for (unsigned i = 0; i < heap->size; ++i)
+    {
+      unsigned l_idx = i * 2 + 1;
+      unsigned r_idx = l_idx + 1;
+      if (l_idx < heap->size)
+	fprintf (f, "Node%p -> Node%p\n", heap->root[i], heap->root[l_idx]);
+      else
+	break;
+      if (r_idx < heap->size)
+	fprintf (f, "Node%p -> Node%p\n", heap->root[i], heap->root[r_idx]);
+      else
+	break;
+    }
+
+  fprintf (f, "}\n");
+  fclose (f);
 }
 
-void insert (NodeHeap *heap, Node *node)
+bool insert (NodeHeap *heap, Node *node)
 {
   unsigned idx = heap->size;
+  if (idx == MAX)
+    return false;
+
   heap->root[idx] = node;
   heap->size += 1;
 
   swapUp (heap, idx);
+  return true;
 }
 
 Node *removeMax (NodeHeap *heap)
